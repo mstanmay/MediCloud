@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum AppointmentStatus {
+  REQUESTED
+  APPROVED
+  COMPLETED
+  REJECTED
+  CANCELLED
+  RESCHEDULED
+  NO_SHOW
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole
+  fullName     String   @map("full_name")
+  phone        String?
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  patientProfile Patient?
+  doctorProfile  Doctor?
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+
+  @@map("users")
+}
+
+model Patient {
+  id               String   @id @default(cuid())
+  userId           String   @unique @map("user_id")
+  dateOfBirth      String?  @map("date_of_birth")
+  gender           String?
+  bloodGroup       String?  @map("blood_group")
+  allergies        String?
+  emergencyContact String?  @map("emergency_contact")
+  address          String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments       Appointment[]
+  medicalRecords     MedicalRecord[]
+  sharingPermissions RecordSharingPermission[]
+
+  @@map("patients")
+}
+
+model Doctor {
+  id              String   @id @default(cuid())
+  userId          String   @unique @map("user_id")
+  specialization  String
+  licenseNumber   String   @unique @map("license_number")
+  department      String
+  experienceYears Int      @default(5) @map("experience_years")
+  consultationFee Int      @default(800) @map("consultation_fee")
+  bio             String?
+  avatarUrl       String?  @map("avatar_url")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user               User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availability       DoctorAvailability[]
+  appointments       Appointment[]
+  uploadedRecords    MedicalRecord[]
+  sharingPermissions RecordSharingPermission[]
+
+  @@map("doctors")
+}
+
+model DoctorAvailability {
+  id                  String  @id @default(cuid())
+  doctorId            String  @map("doctor_id")
+  dayOfWeek           Int     @map("day_of_week")
+  startTime           String  @map("start_time")
+  endTime             String  @map("end_time")
+  slotDurationMinutes Int     @default(30) @map("slot_duration_minutes")
+  isAvailable         Boolean @default(true) @map("is_available")
+
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId, dayOfWeek])
+  @@map("doctor_availability")
+}
+
+model Appointment {
+  id                String            @id @default(cuid())
+  patientId         String            @map("patient_id")
+  doctorId          String            @map("doctor_id")
+  scheduledStart    DateTime          @map("scheduled_start")
+  scheduledEnd      DateTime          @map("scheduled_end")
+  timezone          String            @default("Asia/Kolkata")
+  status            AppointmentStatus @default(REQUESTED)
+  reason            String
+  consultationNotes String?           @map("consultation_notes")
+  reminderSentAt    DateTime?         @map("reminder_sent_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  patient       Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor        Doctor          @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  records       MedicalRecord[]
+  notifications Notification[]
+
+  @@index([doctorId, scheduledStart])
+  @@index([patientId, scheduledStart])
+  @@map("appointments")
+}
+
+model MedicalRecord {
+  id                 String   @id @default(cuid())
+  patientId          String   @map("patient_id")
+  uploadedByDoctorId String   @map("uploaded_by_doctor_id")
+  appointmentId      String?  @map("appointment_id")
+  title              String
+  category           String
+  fileName           String   @map("file_name")
+  mimeType           String   @map("mime_type")
+  fileSizeBytes      Int      @map("file_size_bytes")
+  storageKey         String   @unique @map("storage_key")
+  checksumSha256     String   @map("checksum_sha256")
+  notes              String?
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  patient            Patient                   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  uploadedByDoctor   Doctor                    @relation(fields: [uploadedByDoctorId], references: [id], onDelete: Restrict)
+  appointment        Appointment?              @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  sharingPermissions RecordSharingPermission[]
+
+  @@index([patientId, createdAt])
+  @@map("medical_records")
+}
+
+model RecordSharingPermission {
+  id        String    @id @default(cuid())
+  recordId  String    @map("record_id")
+  patientId String    @map("patient_id")
+  doctorId  String    @map("doctor_id")
+  grantedAt DateTime  @default(now()) @map("granted_at")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  isActive  Boolean   @default(true) @map("is_active")
+
+  record  MedicalRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  patient Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor  Doctor        @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId, isActive])
+  @@map("record_sharing_permissions")
+}
+
+model Notification {
+  id             String              @id @default(cuid())
+  userId         String              @map("user_id")
+  appointmentId  String?             @map("appointment_id")
+  type           String
+  channel        NotificationChannel
+  subject        String
+  message        String
+  deliveryStatus String              @default("DELIVERED") @map("delivery_status")
+  isRead         Boolean             @default(false) @map("is_read")
+  sentAt         DateTime?           @map("sent_at")
+  createdAt      DateTime            @default(now()) @map("created_at")
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorUserId  String?  @map("actor_user_id")
+  action       String
+  resourceType String   @map("resource_type")
+  resourceId   String   @map("resource_id")
+  metadataJson String?  @map("metadata_json")
+  ipAddress    String?  @map("ip_address")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  actor User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@map("audit_logs")
+}

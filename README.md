@@ -1,11 +1,30 @@
-<div align="center">
+# MediCloud — Cloud-Based Patient Monitoring & Healthcare Management System
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+MediCloud is an academic cloud computing healthcare platform designed to centralize patient medical records, prevent appointment scheduling conflicts, enforce role-based access control, and automate 24-hour pre-visit reminders.
 
-  <h1>Built with AI Studio</h2>
+## Key Features
+- **Role-Based Portals**: Dedicated workflows for **Patients**, **Doctors**, and **Administrators**.
+- **Appointment Engine (`Asia/Kolkata`)**: Weekly doctor availability, live slot generation, transactional overlap protection, and full lifecycle (`REQUESTED` → `APPROVED` → `COMPLETED`, `REJECTED`, `CANCELLED`, `RESCHEDULED`, `NO_SHOW`).
+- **Private Medical Report Vault**: Two-step pre-signed upload/download architecture (`PDF`, `JPEG`, `PNG`) with magic-byte verification, SHA-256 checksums, and zero permanent public file URLs.
+- **Consent-Based Record Sharing & Access History**: Patients grant time-limited report access to specialists, revoke consent at any time, and inspect access audit trails.
+- **Automated 24-Hour Reminder Worker**: Scheduled backend sweep sending idempotent pre-visit reminders without duplicates.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## Synthetic Demo Accounts
+All seeded accounts use password `MediCloud@2026` (synthetic academic data only):
+- **Patient**: `arjun.mehta@medicloud.demo`
+- **Doctor**: `dr.kavya.sharma@medicloud.demo`
+- **Administrator**: `admin@medicloud.demo`
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## Quick Start
+```bash
+npm install
+npm test
+npm run dev
+```
 
-</div>
+## Documentation
+- [Architecture Overview](docs/architecture.md)
+- [Database Design & ER Diagram](docs/database-design.md)
+- [REST API Reference](docs/api-documentation.md)
+- [AWS & Vercel Deployment Guide](docs/deployment-guide.md)
+- [Test Cases](docs/test-cases.md)
