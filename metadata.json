@@ -1,0 +1,6 @@
+{
+  "name": "MediCloud",
+  "description": "Cloud-Based Patient Monitoring and Healthcare Management System",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
